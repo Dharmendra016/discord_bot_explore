@@ -31,6 +31,17 @@ dat = new SlashCommandBuilder()
 .setDescription('image Generation');
 commands.push(dat.toJSON());
 
+dat = new SlashCommandBuilder()
+.setName('prompt')
+.setDescription('Give prompt')
+.addStringOption(option =>
+	option.setName('text')
+		.setDescription('The prompt text')
+		.setRequired(true)
+);
+commands.push(dat.toJSON());
+
+
 
 (async () => {
 	try {
@@ -47,9 +58,9 @@ commands.push(dat.toJSON());
 })();
 
 let tex ;
-async function getImageUlr(){
+async function getImageUlr(prompt){
 const sdk =  require("./imageGenerator");
- tex = await sdk("A old nepal");
+ tex = await sdk(prompt);
 console.log(tex);
 }
 
@@ -68,6 +79,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
 	if(interaction.commandName == "image"){
 		getImageUlr();
 		await interaction.reply(`${tex}`)
+	}
+	if(interaction.commandName == "prompt"){
+		const prompt = interaction.options.getString('text');
+		getImageUlr(`${prompt}`);
+		// interaction.reply(`You provided the prompt: "${prompt}"`);
+		await interaction.reply(`${tex}`);
 	}
 })
 
