@@ -1,6 +1,6 @@
 const express = require("express");
 const path = require("node:path");
-const { Client, Events, GatewayIntentBits ,SlashCommandBuilder } = require('discord.js');
+const { Client, EmbedBuilder, Events, GatewayIntentBits ,SlashCommandBuilder } = require('discord.js');
 const { REST, Routes } = require('discord.js');
 const app = express(); 
 const router = express.Router() ; 
@@ -24,11 +24,6 @@ commands.push(cmd.data.toJSON());
 let dat = new SlashCommandBuilder()
 .setName('hii')
 .setDescription('greet');
-commands.push(dat.toJSON());
-
-dat = new SlashCommandBuilder()
-.setName('image')
-.setDescription('image Generation');
 commands.push(dat.toJSON());
 
 dat = new SlashCommandBuilder()
@@ -57,13 +52,12 @@ commands.push(dat.toJSON());
 	}
 })();
 
-let tex ;
-async function getImageUlr(prompt){
-const sdk =  require("./imageGenerator");
- tex = await sdk(prompt);
-console.log(tex);
-}
-
+// let tex ;
+// async function getImageUlr(prompt){
+// const sdk =  require("./imageGenerator");
+//  tex = await sdk(prompt);
+// console.log(tex);
+// }
 
 
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -76,21 +70,31 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if(interaction.commandName == "hii"){
         await interaction.reply(`Hii ! ${interaction.user.username} k xa vai`);
     }
-	if(interaction.commandName == "image"){
-		getImageUlr();
-		await interaction.reply(`${tex}`)
-	}
 	if(interaction.commandName == "prompt"){
-		const prompt = interaction.options.getString('text');
-		getImageUlr(`${prompt}`);
-		// interaction.reply(`You provided the prompt: "${prompt}"`);
-		await interaction.reply(`${tex}`);
+		await interaction.deferReply();
+
+		const {options} = interaction; 
+		const query = options.getString("text");
+		
+		const scrapeGoogleImages = require('./imageScrapper');
+		const results = await scrapeGoogleImages(query, 4);
+		console.log('Image URLs:', results);
+	
+
+		const embeds0 = new EmbedBuilder().setURL('https://youtube.com').setImage(results[0]);
+		const embeds1 = new EmbedBuilder().setURL('https://youtube.com').setImage(results[1]);
+		const embeds2 = new EmbedBuilder().setURL('https://youtube.com').setImage(results[2]);
+		const embeds3 = new EmbedBuilder().setURL('https://youtube.com').setImage(results[3]);
+		
+		await interaction.editReply({embeds:[embeds0 , embeds1 ,embeds2 , embeds3]});
+		
 	}
 })
 
 
-// client.commands = new Collection();
+// client.commands = new Collection()
 const command = require('./commands/utility/ping');
+const internal = require("node:stream");
 client.login(token);
 
 
