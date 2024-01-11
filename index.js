@@ -1,112 +1,70 @@
 const express = require("express");
 const path = require("node:path");
-const { Client, EmbedBuilder, Events, GatewayIntentBits ,SlashCommandBuilder } = require('discord.js');
-const { REST, Routes } = require('discord.js');
+const fs = require('node:fs');
+const { Client, Collection, Events, GatewayIntentBits } = require('discord.js');
+
 const app = express(); 
-const router = express.Router() ; 
 require("dotenv").config();
 
 const  token = process.env.TOKEN; 
-const clientId = process.env.clientId ; 
-const guildId = process.env.guildId;
+
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+
+client.commands = new Collection();
+const foldersPath = path.join(__dirname, 'commands');
+const commandFolders = fs.readdirSync(foldersPath);
+
+for (const folder of commandFolders) {
+	const commandsPath = path.join(foldersPath, folder);
+	const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+	for (const file of commandFiles) {
+		const filePath = path.join(commandsPath, file);
+		const command = require(filePath);
+		if ('data' in command && 'execute' in command) {
+			client.commands.set(command.data.name, command);
+		} else {
+			console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+		}
+	}
+}
 
 client.once(Events.ClientReady, readyClient => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
-const rest = new REST().setToken(token);
-
-const cmd = require("./commands/utility/ping");
-
-const commands = []
-commands.push(cmd.data.toJSON());
-let dat = new SlashCommandBuilder()
-.setName('hii')
-.setDescription('greet');
-commands.push(dat.toJSON());
-
-dat = new SlashCommandBuilder()
-.setName('prompt')
-.setDescription('Give prompt')
-.addStringOption(option =>
-	option.setName('text')
-		.setDescription('The prompt text')
-		.setRequired(true)
-);
-commands.push(dat.toJSON());
-
-
-
-(async () => {
-	try {
-		const data = await rest.put(
-			Routes.applicationGuildCommands(clientId, guildId),
-			{ body:  commands},
-		);
-
-		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
-	} catch (error) {
-		// And of course, make sure you catch and log any errors!
-		console.error(error);
-	}
-})();
-
-// let tex ;
-// async function getImageUlr(prompt){
-// const sdk =  require("./imageGenerator");
-//  tex = await sdk(prompt);
-// console.log(tex);
-// }
+const commands_deploy = require("./commands_deploy");
+commands_deploy
 
 
 client.on(Events.InteractionCreate, async (interaction) => {
     console.log(interaction.isChatInputCommand());
     if (!interaction.isChatInputCommand()) return;
 
-    if(interaction.commandName == 'ping'){
-        await interaction.reply(`pong | ${interaction.user.username}`);
-    }
-    if(interaction.commandName == "hii"){
-        await interaction.reply(`Hii ! ${interaction.user.username} k xa vai`);
-    }
-	if(interaction.commandName == "prompt"){
-		await interaction.deferReply();
+	const command = interaction.client.commands.get(interaction.commandName);
 
-		const {options} = interaction; 
-		const query = options.getString("text");
-		
-		const scrapeGoogleImages = require('./imageScrapper');
-		const results = await scrapeGoogleImages(query, 4);
-		console.log('Image URLs:', results);
-	
-
-		const embeds0 = new EmbedBuilder().setURL('https://youtube.com').setImage(results[0]);
-		const embeds1 = new EmbedBuilder().setURL('https://youtube.com').setImage(results[1]);
-		const embeds2 = new EmbedBuilder().setURL('https://youtube.com').setImage(results[2]);
-		const embeds3 = new EmbedBuilder().setURL('https://youtube.com').setImage(results[3]);
-		
-		await interaction.editReply({embeds:[embeds0 , embeds1 ,embeds2 , embeds3]});
-		
+	if (!command) {
+		console.error(`No command matching ${interaction.commandName} was found.`);
+		return;
 	}
+
+	try {
+		await command.execute(interaction);
+	} catch (error) {
+		console.error(error);
+		if (interaction.replied || interaction.deferred) {
+			await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+		} else {
+			await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+		}
+	}
+
 })
 
-
-// client.commands = new Collection()
-const command = require('./commands/utility/ping');
-const internal = require("node:stream");
 client.login(token);
-
-
-
 
 app.listen(4000 , () => {
     console.log(`Server started at port 3000`);
 })
-
-
-// router.post('https://api.edenai.run/v2/image/generation', sdkGen());
-
 
 app.get("/", (req , res) => {
     res.send("hello world")
