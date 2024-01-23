@@ -60,6 +60,12 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 })
 
+client.on('guildMemberAdd', member => {
+    const channel = member.guild.channels.cache.find(ch => ch.name === 'Project Team');
+    if (!channel) return;
+    channel.send(`Welcome to the server, ${member}!`);
+});
+
 client.login(token);
 
 app.listen(4000 , () => {
