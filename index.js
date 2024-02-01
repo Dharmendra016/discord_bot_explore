@@ -8,7 +8,7 @@ require("dotenv").config();
 
 const  token = process.env.TOKEN; 
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds , GatewayIntentBits.GuildMessages , GatewayIntentBits.MessageContent , GatewayIntentBits.GuildPresences , GatewayIntentBits.GuildMembers] });
 
 client.commands = new Collection();
 const foldersPath = path.join(__dirname, 'commands');
@@ -31,6 +31,47 @@ for (const folder of commandFolders) {
 client.once(Events.ClientReady, readyClient => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 });
+
+client.on('ready' , async (guild) => {
+	const avatarURL = "https://media.licdn.com/dms/image/D5603AQHM8YgBjr12EQ/profile-displayphoto-shrink_800_800/0/1681134839551?e=1712188800&v=beta&t=VjGsOufAYXOtx2cn3WQksii4xGbAG_3vP-9rkSQYbKw"
+
+	
+	// 1111892480741347361
+	 // Replace with your guild ID
+	const userId = '975748526975889448'; // Replace with the user ID of the target user
+
+
+	const user = await client.users.fetch(userId);
+	
+	if(user){
+		// if (user.presence.status === 'online') {
+			console.log(`${user.displayName} is now online.`);
+			console.log("User founded");
+			if (user.presence?.status === 'online') {
+				console.log(`${user.displayName} is now online.`);
+				const channel = client.channels.cache.get('1111892481374699592');
+				channel.send(`${user.displayName} is now online.`);
+			}
+			
+		// }
+		
+
+	}else{
+		console.log("Not founded"); 
+	}
+
+
+	if (client.user) {
+    client.user.setAvatar(avatarURL)
+        .then(() => console.log('Avatar set successfully'))
+        .catch(error => console.error('Error setting avatar:', error));
+
+	client.user.setActivity('coding');
+	} else {
+		console.error('Client user is null or undefined');
+	}
+
+})
 
 const commands_deploy = require("./commands_deploy");
 commands_deploy
@@ -60,11 +101,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 })
 
-client.on('guildMemberAdd', member => {
-    const channel = member.guild.channels.cache.find(ch => ch.name === 'Project Team');
-    if (!channel) return;
-    channel.send(`Welcome to the server, ${member}!`);
+client.on("messageCreate", async (message) => {
+    if (message.author.bot) return;
+    if (message.content.includes("Like")) {
+        await message.react("❤");
+    }
+
+	if (message.content.toLowerCase() === '!getguildid') {
+        message.reply(`The ID of this server is: ${message.guild.id}`);
+    }
 });
+
+client.on("guildMemberAdd" , (oldmember , newmember) => {
+
+	const channel = client.channels.get("1111892481374699592"); 
+	channel.send(`Hello Welcome to My Discord Channel ${newmember.user}`)
+
+})
+
 
 client.login(token);
 
